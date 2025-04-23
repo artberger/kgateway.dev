@@ -269,9 +269,8 @@ Note that the tracing functionality of the AI Gateway integrates seamlessly with
    3. From the `Search` tab, click the **Service** dropdown and select the `gloo-ai-extension`. Configure any additional filters that you want, then click **Find Traces**. 
    
    4. Click on the trace that you want to review.
-
-      {{< reuse-image src="/img/screenshots/ai_tracing.png" caption="Figure: Traces for requests to the AI Gateway in the Jaeger UI." >}}
       
+      TODO - add image
 -->
 
 ## Next
