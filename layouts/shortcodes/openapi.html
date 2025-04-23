@@ -1,0 +1,20 @@
+{{ $url := .Get "url" }}
+{{ $spec := resources.GetRemote $url | transform.Unmarshal }}
+
+<div class="openapi-spec">
+  <h2>{{ $spec.info.title }}</h2>
+  <p>{{ $spec.info.description }}</p>
+  
+  <h3>Endpoints</h3>
+  {{ range $path, $methods := $spec.paths }}
+    <div class="endpoint">
+      <h4>{{ $path }}</h4>
+      {{ range $method, $details := $methods }}
+        <div class="method {{ $method }}">
+          <span class="method-label">{{ $method | upper }}</span>
+          <p>{{ $details.summary }}</p>
+        </div>
+      {{ end }}
+    </div>
+  {{ end }}
+</div>
