@@ -215,14 +215,12 @@ spec:
     promptGuard:
       request:
         webhook:
-          host:
-            host: $WEBHOOK_SERVER_ADDRESS
-            port: 8000
+          host: $WEBHOOK_SERVER_ADDRESS
+          port: 8000
       response:
         webhook:
-          host:
-            host: $WEBHOOK_SERVER_ADDRESS
-            port: 8000
+          host: $WEBHOOK_SERVER_ADDRESS
+          port: 8000
 EOF
 ```
 
