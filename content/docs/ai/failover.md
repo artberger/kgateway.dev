@@ -70,7 +70,7 @@ In this example, you create a Backend with multiple pools for the same LLM provi
    EOF
    ```
 
-2. Create an HTTPRoute resource that routes incoming traffic on the `/model` path to the Backend backend that you created in the previous step. In this example, the URLRewrite filter rewrites the path from `/model` to the path of the API in the LLM provider that you want to use, such as `/v1/chat/` completions for OpenAI.
+2. Create an HTTPRoute resource that routes incoming traffic on the `/model` path to the Backend backend that you created in the previous step. The Backend automatically rewrites the path to the LLM provider that you want to use, such as `/v1/chat/completions` for OpenAI.
 
    ```yaml
    kubectl apply -f- <<EOF
@@ -90,12 +90,6 @@ In this example, you create a Backend with multiple pools for the same LLM provi
        - path:
            type: PathPrefix
            value: /model
-       filters:
-       - type: URLRewrite
-         urlRewrite:
-           path:
-             type: ReplaceFullPath
-             replaceFullPath: /v1/chat/completions
        backendRefs:
        - name: model-failover
          namespace: kgateway-system
