@@ -450,7 +450,6 @@ _Appears in:_
 | `tcpKeepalive` _[TCPKeepalive](#tcpkeepalive)_ | Configure OS-level TCP keepalive checks. |  |  |
 | `commonHttpProtocolOptions` _[CommonHttpProtocolOptions](#commonhttpprotocoloptions)_ | Additional options when handling HTTP requests upstream, applicable to<br />both HTTP1 and HTTP2 requests. |  |  |
 | `http1ProtocolOptions` _[Http1ProtocolOptions](#http1protocoloptions)_ | Additional options when handling HTTP1 requests upstream. |  |  |
-| `sslConfig` _[SSLConfig](#sslconfig)_ | SSLConfig contains the options necessary to configure a backend to use TLS origination.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/tls.proto#envoy-v3-api-msg-extensions-transport-sockets-tls-v3-sslconfig) for more details. |  |  |
 
 
 #### BackendSpec
@@ -2059,66 +2058,6 @@ _Appears in:_
 | `CHAT_STREAMING` | Stream responses to a client, which allows the LLM to stream out tokens as they are generated.<br /> |
 
 
-#### SSLConfig
-
-
-
-
-
-
-
-_Appears in:_
-- [BackendConfigPolicySpec](#backendconfigpolicyspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `secretRef` _[LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#localobjectreference-v1-core)_ | Reference to the TLS secret containing the certificate, key, and optionally the root CA. |  |  |
-| `sslFiles` _[SSLFiles](#sslfiles)_ | File paths to certificates local to the proxy. |  |  |
-| `sni` _string_ | The SNI domains that should be considered for TLS connection |  |  |
-| `verifySubjectAltName` _string array_ | Verify that the Subject Alternative Name in the peer certificate is one of the specified values.<br />note that a root_ca must be provided if this option is used. |  |  |
-| `sslParameters` _[SSLParameters](#sslparameters)_ | General TLS parameters. See the [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#extensions-transport-sockets-tls-v3-tlsparameters)<br />for more information on the meaning of these values. |  |  |
-| `alpnProtocols` _string array_ | Set Application Level Protocol Negotiation<br />If empty, defaults to ["h2", "http/1.1"]. |  |  |
-| `allowRenegotiation` _boolean_ | Allow Tls renegotiation, the default value is false.<br />TLS renegotiation is considered insecure and shouldn't be used unless absolutely necessary. |  |  |
-| `oneWayTLS` _boolean_ | If the SSL config has the ca.crt (root CA) provided, kgateway uses it to perform mTLS by default.<br />Set oneWayTls to true to disable mTLS in favor of server-only TLS (one-way TLS), even if kgateway has the root CA.<br />If unset, defaults to false. |  |  |
-
-
-#### SSLFiles
-
-
-
-
-
-
-
-_Appears in:_
-- [SSLConfig](#sslconfig)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `tlsCertificate` _string_ |  |  |  |
-| `tlsKey` _string_ |  |  |  |
-| `rootCA` _string_ |  |  |  |
-
-
-#### SSLParameters
-
-
-
-
-
-
-
-_Appears in:_
-- [SSLConfig](#sslconfig)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `tlsMinVersion` _[TLSVersion](#tlsversion)_ | Minimum TLS version. |  | Enum: [AUTO 1.0 1.1 1.2 1.3] <br /> |
-| `tlsMaxVersion` _[TLSVersion](#tlsversion)_ | Maximum TLS version. |  | Enum: [AUTO 1.0 1.1 1.2 1.3] <br /> |
-| `cipherSuites` _string array_ |  |  |  |
-| `ecdhCurves` _string array_ |  |  |  |
-
-
 #### SdsBootstrap
 
 
@@ -2332,27 +2271,6 @@ _Appears in:_
 | `keepAliveProbes` _integer_ | Maximum number of keep-alive probes to send before dropping the connection. |  |  |
 | `keepAliveTime` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#duration-v1-meta)_ | The number of seconds a connection needs to be idle before keep-alive probes start being sent. |  |  |
 | `keepAliveInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v/#duration-v1-meta)_ | The number of seconds between keep-alive probes. |  |  |
-
-
-#### TLSVersion
-
-_Underlying type:_ _string_
-
-TLSVersion defines the TLS version.
-
-_Validation:_
-- Enum: [AUTO 1.0 1.1 1.2 1.3]
-
-_Appears in:_
-- [SSLParameters](#sslparameters)
-
-| Field | Description |
-| --- | --- |
-| `AUTO` |  |
-| `1.0` |  |
-| `1.1` |  |
-| `1.2` |  |
-| `1.3` |  |
 
 
 #### TokenBucket
