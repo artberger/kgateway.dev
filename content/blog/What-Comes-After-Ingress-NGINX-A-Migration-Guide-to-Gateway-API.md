@@ -1,6 +1,7 @@
 ---
 title: What Comes After Ingress NGINX? A Migration Guide to Gateway API
 toc: false
+publishDate: 2026-01-27T10:00:00-00:00
 author: Michael Levan
 excludeSearch: true
 ---
