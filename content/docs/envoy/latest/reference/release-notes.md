@@ -15,8 +15,8 @@ For more details, review the [GitHub release notes](https://github.com/kgateway-
 
 Version 2.2 introduces major breaking changes for agentgateway implementation. Agentgateway now has:
 * New dedicated APIs in the `agentgateway.dev` API group
-* New `AgentgatewayPolicy` to replace `TrafficPolicy` for agentgateway configurations
-* New `AgentgatewayParameters` API in `agentgateway.dev/v1alpha1`
+* New `AgentgatewayPolicy` API to replace `TrafficPolicy` for agentgateway policy configurations
+* New `AgentgatewayParameters` API to replace GatewayParameters for agentgateway proxy configurations
 * Split Helm installation with dedicated charts for Envoy-based kgateway and agentgateway
 
 
@@ -212,7 +212,7 @@ If you are currently running [Ingress Nginx](https://kubernetes.github.io/ingres
 
 **HTTPListenerPolicy deprecated**: `HTTPListenerPolicy` is now deprecated. Use the `httpSettings` under `ListenerPolicy` instead.
 
-**AI Gateway and Inference Extension removed**: Support for `InferencePool` and AI backends with the `kgateway` class, which was deprecated in v2.1, was removed. v2.2.0 only supports the agentgateway data plane for inference. Note: v2.2.0 includes an inference plugin regression due to [GitHub issue #13456](https://github.com/kgateway-dev/kgateway/issues/13456). Users of this plugin should not upgrade to v2.2.0 and should instead wait for the upcoming v2.2.1 patch release.
+**AI Gateway and Inference Extension removed**: Support for `InferencePool` and AI backends with the `kgateway` class, which was deprecated in v2.1, was removed. Version 2.2.0 only supports the [agentgateway data plane](https://agentgateway.dev/docs/kubernetes/latest/inference/) for inference. **Note**: v2.2.0 includes an inference plugin regression due to [GitHub issue #13456](https://github.com/kgateway-dev/kgateway/issues/13456). Users of this plugin should not upgrade to v2.2.0 and should instead wait for the upcoming v2.2.1 patch release.
 
 **Per-connection buffer limit annotation**: The `PerConnectionBufferLimit` annotation on Gateway resources is deprecated in favor of the `ListenerPolicy` field.
 
