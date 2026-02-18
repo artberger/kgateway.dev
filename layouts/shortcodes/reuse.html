@@ -1,11 +1,15 @@
 {{- /*  Initialize. */}}
 {{- $asset := "" }}
+{{- $wrapBlock := false }}
 
-{{- /* Get params. */}}
+{{- /* Get params: (0) asset path, (1) optional "block" to wrap in <p> for paragraph spacing. */}}
 {{- with (.Get 0) }}
   {{- $asset = . }}
 {{- else }}
   {{- errorf "The %q shortcode requires a single positional parameter; the relative path to a file in the assets directory. See %s" .Name .Position}}
+{{- end }}
+{{- with (.Get 1) }}
+  {{- if eq (lower .) "block" }}{{ $wrapBlock = true }}{{ end }}
 {{- end }}
 
 {{- /* Get resource. */}}
@@ -16,7 +20,10 @@
   {{- errorf "The %q shortcode was unable to find %q. See %s" .Name $asset .Position}}
 {{- end }}
 
-{{- /* Render resource content. */}}
-{{- $r.Content | .Page.RenderString | chomp }}
-
-{{- /* Chomp trailing newlines. */ -}}
+{{- /* Render inline so nested shortcodes (e.g. product name) stay inline; optional wrap in <p> for paragraph. */}}
+{{- $html := $r.Content | .Page.RenderString | chomp }}
+{{- if $wrapBlock }}
+  {{- (printf "<p>%s</p>" $html) | safeHTML }}
+{{- else }}
+  {{- $html }}
+{{- end }}

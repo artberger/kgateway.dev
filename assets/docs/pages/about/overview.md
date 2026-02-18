@@ -1,4 +1,4 @@
-{{< reuse "docs/snippets/kgateway-about.md" >}}
+{{< reuse "docs/snippets/kgateway-about.md" block >}}
 
 In this topic, you learn about the basics of API gateways for microservices, the extensions that {{< reuse "/docs/snippets/kgateway.md" >}} provides beyond typical API gateway functionality, and the default API gateway proxy setup.
 
