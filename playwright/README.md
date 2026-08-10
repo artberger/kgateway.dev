@@ -127,12 +127,9 @@ widen the image map to the `{"light": …, "dark": …}` schema in the same chan
 
 ## Task: bump the Keycloak version
 
-1. Edit `assets/kgw-docs/versions/keycloak-version.md`. This harness reads that file, and the
-   guide's YAML renders the same snippet, so the two cannot disagree.
-
-   > The guide-side half of that wiring ships with the Keycloak guide corrections, not with this
-   > harness. Until it lands, the guide hardcodes `quay.io/keycloak/keycloak:22.0` and you must
-   > keep the two in step by hand.
+1. Edit `assets/kgw-docs/versions/keycloak-version.md`. This harness reads that file and the
+   guide's YAML renders the same snippet, so the deployed Keycloak and the captured console
+   cannot disagree.
 2. `npm run update:keycloak && npm run sync-docs`.
 3. **Review every image diff.** A diff means the console changed, which usually means the guide's
    click-path prose is now wrong too. Fixing the prose is the point of the review; regenerating
