@@ -609,6 +609,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `maxRequestSize` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#quantity-resource-api)_ | MaxRequestSize sets the maximum size in bytes of a message body to buffer.<br />Requests exceeding this size will receive HTTP 413.<br />Example format: "1Mi", "512Ki", "1Gi" |  |  |
 | `disable` _[PolicyDisable](#policydisable)_ | Disable the buffer filter.<br />Can be used to disable buffer policies applied at a higher level in the config hierarchy. |  |  |
+| `filterStage` _[FilterStageSpec](#filterstagespec)_ | FilterStage specifies where in the HTTP filter chain the buffer filter is placed.<br />By default the buffer filter runs late in the chain, after authentication, authorization<br />and rate limiting, so that a request that is going to be rejected outright is rejected<br />before its body is buffered.<br /><br />`maxRequestSize` is only enforced while the buffer filter is the filter accumulating the<br />request body. A filter placed ahead of it that reads or holds the body first - for example<br />an ext_proc that waits on its server, or a body transformation - consumes the body before<br />the buffer filter ever sees it, and the limit is then inert. Move the buffer filter ahead<br />of such a filter to make the limit enforce, at the cost of buffering bodies that a later<br />authentication or authorization filter may go on to reject.<br /><br />The placement is a property of the whole filter chain rather than of a single route, and<br />setting it here affects every route on the listener. Envoy resolves the per-route buffer<br />config by filter name, and that name-based lookup is what lets a route-level policy override<br />a Gateway-level one, so the gateway installs exactly one buffer filter per filter chain. If<br />TrafficPolicies attached to the same listener ask for different stages, the earliest<br />requested stage is used for the whole chain. A policy that only sets `disable` takes no part<br />in that: it keeps its per-route override and leaves the placement to the policies that<br />actually buffer, so turning buffering off on one route never moves the buffer filter for the<br />others.<br /><br />Setting it therefore relaxes, never tightens, what the other routes on the listener do:<br />a route that asked for the default placement will have its bodies buffered before<br />authentication and authorization run, spending memory on requests those filters would go on<br />to reject. Keep buffer policies on a listener consistent, or split the listener, if that<br />matters for a route. The per-route `maxRequestSize` is unaffected and continues to apply<br />per route.<br /><br />When request decompression is configured on the same filter chain, the decompressor filters<br />stay ahead of the buffer filter, so that `maxRequestSize` is measured against the<br />decompressed body rather than the encoded bytes - otherwise a small compressed body would<br />satisfy the limit and expand past it upstream. Their default placement is already ahead of<br />every stage except `Fault`, so this only moves them when the buffer filter is staged at<br />`Fault`, and then it moves them for every route on the listener: request decompression on<br />those routes runs ahead of fault injection, CORS, and any ext_proc staged at `Fault`.<br /><br />`filterStage.weight` must be 0: it breaks ties between several filters of the same type at<br />one stage, and a filter chain carries at most one buffer filter. |  |  |
 
 
 #### CELFilter
@@ -744,6 +745,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | The idle timeout for connections. The idle timeout is defined as the<br />period in which there are no active requests. When the<br />idle timeout is reached the connection will be closed. If the connection is an HTTP/2<br />downstream connection a drain sequence will occur prior to closing the connection.<br />Note that request based timeouts mean that HTTP/2 PINGs will not keep the connection alive.<br />If not specified, this defaults to 1 hour. To disable idle timeouts explicitly set this to 0.<br />	Disabling this timeout has a highly likelihood of yielding connection leaks due to lost TCP<br />	FIN packets, etc. |  | MaxLength: 32 <br />Type: string <br /> |
+| `maxConnectionDuration` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | MaxConnectionDuration is the maximum duration of a connection, measured from<br />when the connection was established. When this duration is reached, Envoy starts<br />the drain sequence. If unset, there is no maximum connection duration.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-field-config-core-v3-httpprotocoloptions-max-connection-duration |  | MaxLength: 32 <br />Type: string <br /> |
 | `maxHeadersCount` _integer_ | Specifies the maximum number of response headers that the upstream connection will accept<br />from the backend. If not specified, the default of 100 is used.<br />To configure the maximum number of headers accepted in downstream requests, use<br />ListenerPolicy.spec.default.httpSettings.maxHeadersCount. |  | Minimum: 0 <br /> |
 | `maxStreamDuration` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | Total duration to keep alive an HTTP request/response stream. If the time limit is reached the stream will be<br />reset independent of any other timeouts. If not specified, this value is not set. |  | MaxLength: 32 <br />Type: string <br /> |
 | `maxRequestsPerConnection` _integer_ | Maximum requests for a single upstream connection.<br />If set to 0 or unspecified, defaults to unlimited. |  | Minimum: 0 <br /> |
@@ -803,6 +805,22 @@ _Appears in:_
 | `Gzip` | CompressionGzip selects the gzip compressor.<br /> |
 | `Brotli` | CompressionBrotli selects the brotli compressor.<br /> |
 | `Zstd` | CompressionZstd selects the zstd compressor.<br /> |
+
+
+#### ConnectConfig
+
+
+
+ConnectConfig specifies how CONNECT requests are forwarded upstream.
+
+
+
+_Appears in:_
+- [ProtocolUpgradeConfig](#protocolupgradeconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `terminate` _boolean_ | Terminate causes the gateway to terminate the CONNECT request and forward<br />the request payload upstream as raw TCP data. When false or omitted, the<br />CONNECT request is proxied upstream without termination.<br /><br />Because the payload is forwarded as raw bytes, configuring TLS for the<br />selected backend wraps those bytes in a separate upstream TLS session. Leave<br />backend TLS disabled when the payload must reach the upstream unchanged. |  |  |
 
 
 #### ConnectionKeepalive
@@ -1447,6 +1465,7 @@ be placed.
 
 
 _Appears in:_
+- [Buffer](#buffer)
 - [ExtProcProvider](#extprocprovider)
 
 | Field | Description | Default | Validation |
@@ -1701,6 +1720,29 @@ _Appears in:_
 | `sleepTimeSeconds` _integer_ | Time (in seconds) for the preStop hook to wait before allowing Envoy to terminate |  | Maximum: 3.1536e+07 <br />Minimum: 0 <br /> |
 
 
+#### GrpcStats
+
+
+
+GrpcStats configures Envoy's gRPC statistics HTTP filter
+(envoy.filters.http.grpc_stats), emitting per-service/method gRPC metrics
+that upstream_rq_xx cannot express (gRPC is HTTP 200 regardless of grpc-status).
+
+
+Exactly one of statsForAllMethods or methodAllowlist must be set.
+
+
+
+_Appears in:_
+- [HTTPSettings](#httpsettings)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `statsForAllMethods` _boolean_ | StatsForAllMethods enables emitting stats for every gRPC method seen on the<br />listener. Mutually exclusive with methodAllowlist. |  |  |
+| `methodAllowlist` _string array_ | MethodAllowlist entries are fully-qualified gRPC methods, e.g. "/pkg.Service/Method".<br />Only methods in this list get per-method stats. Mutually exclusive with statsForAllMethods. |  | MaxItems: 128 <br />MinItems: 1 <br /> |
+| `enableUpstreamStats` _boolean_ | EnableUpstreamStats emits a histogram for the upstream (wire) latency of each request. |  |  |
+
+
 #### GrpcStatus
 
 _Underlying type:_ _string_
@@ -1773,6 +1815,8 @@ _Appears in:_
 | `useRemoteAddress` _boolean_ | UseRemoteAddress determines whether to use the remote address for the original client.<br />Note: If this field is omitted, it will fallback to the default value of 'true', which we set for all Envoy HCMs.<br />Thus, setting this explicitly to true is unnecessary (but will not cause any harm).<br />When true, Envoy will use the remote address of the connection as the client address.<br />When false, Envoy will use the X-Forwarded-For header to determine the client address. Furthermore, SkipXffAppend will implicitly be set to true unless explicitly configured.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-use-remote-address |  |  |
 | `preserveExternalRequestId` _boolean_ | PreserveExternalRequestId determines whether the connection manager will keep the x-request-id header if passed for<br />a request that is edge (Edge request is the request from external clients to front Envoy) and not reset it, which is the current Envoy behaviour. This defaults to false.<br />See here for more information https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-preserve-external-request-id |  |  |
 | `generateRequestId` _boolean_ | GenerateRequestId:  Whether the connection manager will generate the x-request-id header if it does not exist.<br />This defaults to true. Generating a random UUID4 is expensive so in high throughput scenarios where this feature is not desired it can be disabled.<br />See here for more information https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-generate-request-id |  |  |
+| `normalizePath` _boolean_ | NormalizePath determines whether the connection manager normalizes the path per RFC 3986 before<br />routing, e.g. collapsing `.` and `..` segments and decoding percent-encoded characters. This<br />defaults to true. Disable this if a backend (e.g. an S3-compatible object store) needs to see<br />the original, unnormalized request path.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-normalize-path |  |  |
+| `mergeSlashes` _boolean_ | MergeSlashes determines whether the connection manager merges adjacent slashes in the request<br />path before routing. This defaults to true. Disable this if a backend (e.g. an S3-compatible<br />object store) relies on repeated slashes in the path having meaning, such as object keys that<br />contain "//".<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-merge-slashes |  |  |
 | `proxy100Continue` _boolean_ | Proxy100Continue determines whether Envoy forwards requests with an<br />Expect: 100-continue header upstream and proxies upstream 100 Continue<br />responses downstream. When unset or false, Envoy handles the response locally. |  |  |
 | `xffNumTrustedHops` _integer_ | XffNumTrustedHops is the number of additional ingress proxy hops from the right side of the X-Forwarded-For HTTP header to trust when determining the origin client's IP address.<br />This is mutually exclusive with XffTrustedCIDRs.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-xff-num-trusted-hops |  | Minimum: 0 <br /> |
 | `xffTrustedCIDRs` _CIDR array_ | XffTrustedCIDRs are ranges of IPs that may appear in the X-Forwarded-For HTTP header and are trusted when determining the origin client's IP address.<br />This is mutually exclusive with XffNumTrustedHops and requires UseRemoteAddress to be set to false.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/http/original_ip_detection/xff/v3/xff.proto#envoy-v3-api-field-extensions-http-original-ip-detection-xff-v3-xffconfig-xff-trusted-cidrs |  | MinItems: 1 <br /> |
@@ -1781,10 +1825,12 @@ _Appears in:_
 | `serverName` _string_ | ServerName determines the value of the server header.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-server-name |  | MinLength: 1 <br /> |
 | `streamIdleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | StreamIdleTimeout is the idle timeout for HTTP streams.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-stream-idle-timeout |  | MaxLength: 32 <br />Type: string <br /> |
 | `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | IdleTimeout is the idle timeout for connections.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-msg-config-core-v3-httpprotocoloptions |  | MaxLength: 32 <br />Type: string <br /> |
+| `maxConnectionDuration` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | MaxConnectionDuration is the maximum duration of a connection, measured from<br />when the connection was established. When this duration is reached, Envoy starts<br />the drain sequence. If unset, there is no maximum connection duration.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-field-config-core-v3-httpprotocoloptions-max-connection-duration |  | MaxLength: 32 <br />Type: string <br /> |
 | `maxRequestsPerConnection` _integer_ | MaxRequestsPerConnection sets the maximum number of requests served over a single downstream<br />keepalive connection. When the limit is reached, Envoy closes the connection, which forces<br />clients to reconnect. This allows L4 load balancers like AWS NLB to rebalance long-lived<br />HTTP/2 and gRPC connections across gateway pods.<br />If set to 0 or unspecified, defaults to unlimited.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-field-config-core-v3-httpprotocoloptions-max-requests-per-connection |  | Minimum: 0 <br /> |
 | `maxHeadersCount` _integer_ | MaxHeadersCount sets the maximum number of headers allowed in a request.<br />Downstream requests that exceed this limit will receive a 431 response for HTTP/1.x and a<br />stream reset for HTTP/2. If unset, defaults to Envoy's built-in default of 100.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-field-config-core-v3-httpprotocoloptions-max-headers-count |  | Minimum: 1 <br /> |
 | `http2ProtocolOptions` _[ListenerHTTP2ProtocolOptions](#listenerhttp2protocoloptions)_ | Http2ProtocolOptions configures downstream HTTP/2 behavior on the listener's<br />HttpConnectionManager.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#config-core-v3-http2protocoloptions |  |  |
 | `healthCheck` _[EnvoyHealthCheck](#envoyhealthcheck)_ | HealthCheck configures [Envoy health checks](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/health_check/v3/health_check.proto) |  |  |
+| `grpcStats` _[GrpcStats](#grpcstats)_ | GrpcStats configures Envoy's gRPC statistics filter for per-service/method<br />gRPC metrics (including grpc-status) on this listener. |  |  |
 | `preserveHttp1HeaderCase` _boolean_ | PreserveHttp1HeaderCase determines whether to preserve the case of HTTP1 request headers.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/header_casing |  |  |
 | `acceptHttp10` _boolean_ | AcceptHTTP10 determines whether to accept incoming HTTP/1.0 and HTTP 0.9 requests.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#config-core-v3-http1protocoloptions |  |  |
 | `defaultHostForHttp10` _string_ | DefaultHostForHttp10 specifies a default host for HTTP/1.0 requests. This is highly suggested if acceptHttp10 is true and a no-op if acceptHttp10 is false.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#config-core-v3-http1protocoloptions |  | MinLength: 1 <br /> |
@@ -2204,7 +2250,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `validationMode` _[ValidationMode](#validationmode)_ | ValidationMode configures how JWT validation behaves.<br />If unset or empty, Strict mode is used (JWT is required).<br />If set to AllowMissing, unauthenticated requests without a JWT are allowed through.<br />If using this mode, make sure to consider the security implications and<br />consider using an `RBAC` policy to enforce authorization. |  | Enum: [Strict AllowMissing] <br /> |
+| `validationMode` _[ValidationMode](#validationmode)_ | ValidationMode configures how JWT validation behaves.<br />If unset or empty, Strict mode is used (JWT is required).<br />If set to AllowMissing, unauthenticated requests without a JWT are allowed through.<br />If set to AllowMissingOrFailed, no request is ever rejected by the JWT filter.<br />If using either of those modes, make sure to consider the security implications and<br />consider using an `RBAC` policy to enforce authorization. |  | Enum: [Strict AllowMissing AllowMissingOrFailed] <br /> |
 | `providers` _[NamedJWTProvider](#namedjwtprovider) array_ | Providers configures named JWT providers.<br />If multiple providers are specified for a given JWT policy,<br />the providers will be `OR`-ed together and will allow validation to any of the providers. |  | MaxItems: 32 <br /> |
 
 
@@ -2264,6 +2310,7 @@ _Appears in:_
 | `claimsToHeaders` _[JWTClaimToHeader](#jwtclaimtoheader) array_ | ClaimsToHeaders is the list of claims to headers to be used for the JWT provider.<br />Optionally set the claims from the JWT payload that you want to extract and add as headers<br />to the request before the request is forwarded to the upstream destination.<br />Note: if ClaimsToHeaders is set, the Envoy route cache will be cleared.<br />This allows the JWT filter to correctly affect routing decisions. |  | MaxItems: 32 <br />MinItems: 1 <br /> |
 | `jwks` _[JWKS](#jwks)_ | JWKS is the source for the JSON Web Keys to be used to validate the JWT. |  |  |
 | `forwardToken` _boolean_ | ForwardToken configures if the JWT token is forwarded to the upstream backend.<br />If true, the header containing the token will be forwarded upstream.<br />If false or not set, the header containing the token will be removed. |  |  |
+| `clockSkew` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | ClockSkew is the tolerance applied when verifying the time constraints of the JWT,<br />i.e. the 'exp' and 'nbf' claims.<br />Only whole seconds are supported, so the duration must not have a millisecond component.<br />If unspecified, the Envoy default of 60s is used. A zero value is not accepted because<br />Envoy interprets it as unset and falls back to that default. |  | MaxLength: 32 <br />Type: string <br /> |
 
 
 #### JWTTokenSource
@@ -2779,6 +2826,7 @@ _Appears in:_
 | `claimsToHeaders` _[JWTClaimToHeader](#jwtclaimtoheader) array_ | ClaimsToHeaders is the list of claims to headers to be used for the JWT provider.<br />Optionally set the claims from the JWT payload that you want to extract and add as headers<br />to the request before the request is forwarded to the upstream destination.<br />Note: if ClaimsToHeaders is set, the Envoy route cache will be cleared.<br />This allows the JWT filter to correctly affect routing decisions. |  | MaxItems: 32 <br />MinItems: 1 <br /> |
 | `jwks` _[JWKS](#jwks)_ | JWKS is the source for the JSON Web Keys to be used to validate the JWT. |  |  |
 | `forwardToken` _boolean_ | ForwardToken configures if the JWT token is forwarded to the upstream backend.<br />If true, the header containing the token will be forwarded upstream.<br />If false or not set, the header containing the token will be removed. |  |  |
+| `clockSkew` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | ClockSkew is the tolerance applied when verifying the time constraints of the JWT,<br />i.e. the 'exp' and 'nbf' claims.<br />Only whole seconds are supported, so the duration must not have a millisecond component.<br />If unspecified, the Envoy default of 60s is used. A zero value is not accepted because<br />Envoy interprets it as unset and falls back to that default. |  | MaxLength: 32 <br />Type: string <br /> |
 
 
 #### OAuth2CookieConfig
@@ -3114,6 +3162,23 @@ _Appears in:_
 | `responseTrailerMode` _string_ | ResponseTrailerMode determines how to handle the response trailers | SKIP | Enum: [DEFAULT SEND SKIP] <br /> |
 
 
+#### ProtocolUpgradeConfig
+
+
+
+ProtocolUpgradeConfig specifies configuration for an HTTP protocol upgrade.
+
+
+
+_Appears in:_
+- [TrafficPolicySpec](#trafficpolicyspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `type` _string_ | Type is the case-insensitive protocol upgrade token, such as "websocket",<br />"CONNECT", or "spdy/3.1". Do not configure the same token more than once,<br />including variants that differ only by letter case. |  | MaxLength: 256 <br />MinLength: 1 <br /> |
+| `connect` _[ConnectConfig](#connectconfig)_ | Connect configures CONNECT-specific behavior. It is valid only when type<br />is "CONNECT". |  |  |
+
+
 #### ProxyDeployment
 
 
@@ -3297,6 +3362,7 @@ _Appears in:_
 | `cacheDuration` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | Duration after which the cached JWKS expires.<br />If unspecified, the default cache duration is 5 minutes. |  | MaxLength: 32 <br />Type: string <br /> |
 | `asyncFetch` _[JWKSAsyncFetch](#jwksasyncfetch)_ | AsyncFetch configures fetching the JWKS asynchronously and caching it on a timer,<br />instead of fetching it on demand during request handling. |  |  |
 | `retryPolicy` _[JWKSRetryPolicy](#jwksretrypolicy)_ | RetryPolicy configures how the JWKS fetch is retried (with exponential backoff)<br />when the remote JWKS server is unavailable. |  |  |
+| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | Timeout for fetching the remote JWKS. If not specified, defaults to 5s. |  | MaxLength: 32 <br />Type: string <br /> |
 
 
 #### RequestDecompression
@@ -3994,6 +4060,7 @@ _Appears in:_
 | `requestMirror` _[RequestMirrorPolicy](#requestmirrorpolicy)_ | RequestMirror configures the behavior of request mirrors defined by<br />HTTPRoute or GRPCRoute RequestMirror filters. It does not create request mirrors.<br />It can target HTTPRoutes, GRPCRoutes, or Gateways (including individual Gateway listeners<br />via sectionName). When attached above the route level it applies to every mirror on the<br />routes it covers, and a more-specific policy wins the whole block: its settings are not<br />combined field-by-field with a less-specific policy. If a covered route has no request<br />mirror, this has no effect. |  | MinProperties: 1 <br /> |
 | `autoHostRewrite` _boolean_ | AutoHostRewrite rewrites the Host header to the DNS name of the selected upstream.<br />NOTE: This field is only honored for HTTPRoute targets.<br />NOTE: If `autoHostRewrite` is set on a route that also has a [URLRewrite filter](https://gateway-api.sigs.k8s.io/reference/api-spec/main/spec/#httpurlrewritefilter)<br />configured to override the `hostname`, the `hostname` value will be used and `autoHostRewrite` will be ignored. |  |  |
 | `buffer` _[Buffer](#buffer)_ | Buffer can be used to set the maximum request size that will be buffered.<br />Requests exceeding this size will return a 413 response. |  |  |
+| `httpUpgrade` _[ProtocolUpgradeConfig](#protocolupgradeconfig) array_ | HTTPUpgrade configures HTTP protocol upgrades on the targeted routes.<br />Route-level upgrade settings override the matching upgrade type configured<br />on the listener. CONNECT termination is applied per route and cannot be<br />configured on a listener. After an upgrade is established, tunneled payload<br />is not inspected by HTTP filters. Authenticate and authorize the initial<br />upgrade request, enable upgrades only for trusted clients, and avoid request<br />buffering. |  | MaxItems: 16 <br /> |
 | `timeouts` _[Timeouts](#timeouts)_ | Timeouts defines the timeouts for requests.<br />It is applicable to HTTPRoutes, GRPCRoutes, and Gateways (including individual<br />Gateway listeners via sectionName), and ignored for other targeted kinds.<br />When attached above the route level, the timeouts apply to all routes it<br />covers; a route-level timeout (from a more specific TrafficPolicy or the<br />built-in HTTPRoute timeouts) takes precedence. |  |  |
 | `retry` _[Retry](#retry)_ | Retry defines the policy for retrying requests.<br />It is applicable to HTTPRoutes, GRPCRoutes, Gateways, Gateway listeners, and<br />ListenerSets, and ignored for other targeted kinds.<br />When attached above the route level, the retry policy applies to all routes it<br />covers; a route-level retry policy (from a more specific TrafficPolicy or the<br />built-in HTTPRoute retry) takes precedence. |  |  |
 | `internalRedirect` _[InternalRedirect](#internalredirect)_ | InternalRedirect handles upstream 3xx redirects inside the gateway.<br />Applies only to routes that forward traffic to a backend. |  |  |
@@ -4080,7 +4147,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `enabledUpgrades` _string array_ | List of upgrade types to enable (e.g. "websocket", "CONNECT", etc.) |  | MinItems: 1 <br /> |
+| `enabledUpgrades` _string array_ | EnabledUpgrades lists the HTTP upgrade types to enable, such as "websocket"<br />and "CONNECT". Enabling "CONNECT" allows CONNECT requests to be proxied<br />upstream without termination. To terminate CONNECT and forward its payload<br />as raw TCP data, configure httpUpgrade in a TrafficPolicy. |  | MinItems: 1 <br /> |
 
 
 #### UpstreamProxyProtocol
@@ -4132,6 +4199,7 @@ _Appears in:_
 | --- | --- |
 | `Strict` | A valid token, issued by a configured issuer, must be present.<br />This is the default option.<br /> |
 | `AllowMissing` | If a token exists, validate it.<br />Warning: this allows requests without a JWT token.<br /> |
+| `AllowMissingOrFailed` | Validate tokens but never reject a request. Requests with a missing, expired,<br />malformed, or otherwise invalid token are all allowed through.<br />Every JWT is still verified, so a valid token still populates `claimsToHeaders`<br />and the JWT dynamic metadata, and a verification failure is recorded in the<br />dynamic metadata for observability. This is a non-enforcing mode,<br />intended for evaluating a JWT policy against live traffic before enforcing it.<br />Warning: this mode provides no authentication. A downstream `RBAC` policy that<br />matches on JWT claims sees the same empty metadata for an invalid token as it does<br />for a request with no token at all.<br /> |
 
 
 #### XRateLimitHeadersStandard
