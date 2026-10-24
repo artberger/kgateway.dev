@@ -82,7 +82,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `None` | AWSLambdaPayloadTransformNone indicates that the payload will not be transformed using Envoy's<br />built-in transformation before it is sent to the Lambda function.<br />Note: Transformation policies configured on the route will still apply.<br /> |
-| `Envoy` | AWSLambdaPayloadTransformEnvoy indicates that the payload will be transformed using Envoy's<br />built-in transformation. Refer to<br />https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/aws_lambda_filter#configuration-as-a-listener-filter<br />for more details on how Envoy transforms the payload.<br /> |
+| `Envoy` | AWSLambdaPayloadTransformEnvoy indicates that the payload will be transformed using Envoy's<br />built-in transformation. Refer to<br />https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/aws_lambda_filter<br />for more details on how Envoy transforms the payload.<br /> |
 
 
 #### AccessLog
@@ -453,13 +453,15 @@ _Appears in:_
 | `tcpKeepalive` _[TCPKeepalive](#tcpkeepalive)_ | Configure OS-level TCP keepalive checks. |  |  |
 | `commonHttpProtocolOptions` _[CommonHttpProtocolOptions](#commonhttpprotocoloptions)_ | Additional options when handling HTTP requests upstream, applicable to<br />both HTTP1 and HTTP2 requests. |  |  |
 | `http1ProtocolOptions` _[Http1ProtocolOptions](#http1protocoloptions)_ | Additional options when handling HTTP1 requests upstream. |  |  |
-| `http2ProtocolOptions` _[Http2ProtocolOptions](#http2protocoloptions)_ | Http2ProtocolOptions contains the options necessary to configure HTTP/2 backends.<br />Note: Http2ProtocolOptions can only be applied to HTTP/2 backends.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/tls.proto#envoy-v3-api-msg-extensions-transport-sockets-tls-v3-sslconfig) for more details. |  |  |
-| `tls` _[TLS](#tls)_ | TLS contains the options necessary to configure a backend to use TLS origination.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/tls.proto#envoy-v3-api-msg-extensions-transport-sockets-tls-v3-sslconfig) for more details. |  |  |
+| `http2ProtocolOptions` _[Http2ProtocolOptions](#http2protocoloptions)_ | Http2ProtocolOptions contains the options necessary to configure HTTP/2 backends.<br />Note: Http2ProtocolOptions can only be applied to HTTP/2 backends.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto#envoy-v3-api-msg-config-core-v3-http2protocoloptions) for more details. |  |  |
+| `tls` _[TLS](#tls)_ | TLS contains the options necessary to configure a backend to use TLS origination.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/tls.proto#envoy-v3-api-msg-extensions-transport-sockets-tls-v3-upstreamtlscontext) for more details. |  |  |
 | `loadBalancer` _[LoadBalancer](#loadbalancer)_ | LoadBalancer contains the options necessary to configure the load balancer. |  |  |
 | `healthCheck` _[HealthCheck](#healthcheck)_ | HealthCheck contains the options necessary to configure the health check. |  |  |
 | `outlierDetection` _[OutlierDetection](#outlierdetection)_ | OutlierDetection contains the options necessary to configure passive health checking. |  |  |
 | `circuitBreakers` _[CircuitBreakers](#circuitbreakers)_ | CircuitBreakers contains the options necessary to configure circuit breaking.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking) for more details. |  |  |
 | `upstreamProxyProtocol` _[UpstreamProxyProtocol](#upstreamproxyprotocol)_ | UpstreamProxyProtocol configures the PROXY protocol for upstream connections to the backend.<br />When enabled, the proxy protocol header is prepended to upstream connections,<br />allowing backend services to see the original client connection information.<br />See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/proxy_protocol/v3/upstream_proxy_protocol.proto) for more details. |  |  |
+| `tunnel` _[Tunnel](#tunnel)_ | Tunnel sends Backend connections through an HTTP CONNECT proxy.<br />Destination TLS uses tls; proxy TLS uses the proxy backend's policy.<br />Requires Backend targetRefs; targetSelectors are not supported. |  |  |
+| `sessionPersistence` _[SessionPersistence](#sessionpersistence)_ | SessionPersistence pins a client to one endpoint of the backend using a<br />cookie or header. It applies to HTTPRoutes and GRPCRoutes that reference<br />the backend, and has no effect on TCPRoutes or TLSRoutes. When a route<br />splits traffic, it only pins a client to an endpoint within the backend<br />chosen by the split. When set, it takes precedence over the<br />sessionPersistence field of an HTTPRoute or GRPCRoute rule.<br /><br />This field is experimental and subject to breaking changes. It mirrors the<br />experimental Gateway API SessionPersistence type (v1.7). |  |  |
 
 
 #### BackendSpec
@@ -863,6 +865,41 @@ _Appears in:_
 | `sameSite` _string_ | SameSite controls cross-site sending of cookies.<br />Supported values are Strict, Lax, and None. |  | Enum: [Strict Lax None] <br /> |
 
 
+#### CookieLifetimeType
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [Permanent Session]
+
+_Appears in:_
+- [SessionPersistenceCookieConfig](#sessionpersistencecookieconfig)
+
+| Field | Description |
+| --- | --- |
+| `Session` | SessionCookieLifetimeType specifies the type for a session<br />cookie.<br /> |
+| `Permanent` | PermanentCookieLifetimeType specifies the type for a permanent<br />cookie.<br /> |
+
+
+#### CookieName
+
+_Underlying type:_ _string_
+
+CookieName is the name of a cookie. Cookie names and header names share the
+same RFC token character set (RFC 6265 defines cookie-name = token).
+
+_Validation:_
+- MaxLength: 256
+- MinLength: 1
+- Pattern: `^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$`
+
+_Appears in:_
+- [SessionPersistenceCookieConfig](#sessionpersistencecookieconfig)
+
+
+
 #### CorsPolicy
 
 
@@ -920,6 +957,7 @@ _Appears in:_
 | `refreshRate` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | RefreshRate controls how frequently Envoy polls DNS for this backend's hostnames.<br /><br />Minimum value is 1ms. If unset, Envoy's default of 5s is used.<br />When Envoy respects DNS TTLs, lower TTL values effectively override this setting,<br />so RefreshRate acts as the maximum polling interval.<br />Recommended value for large-scale deployments is 60s or higher. |  | MaxLength: 32 <br />Type: string <br /> |
 | `jitter` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | Jitter adds a random delay of up to this duration before each DNS refresh,<br />spreading query load over time and helping prevent thundering-herd spikes.<br />Must be less than or equal to refreshRate when both are set. |  | MaxLength: 32 <br />Type: string <br /> |
 | `respectTTL` _boolean_ | RespectTTL instructs Envoy to honor TTL values returned by DNS responses.<br />When enabled, TTLs lower than RefreshRate effectively become the refresh interval. |  |  |
+| `lookupFamily` _[DnsLookupFamily](#dnslookupfamily)_ | LookupFamily selects the address families used to resolve this backend's<br />hostnames. It applies only to backends resolved through DNS, such as a<br />Backend with a hostname, and has no effect on Kubernetes Services. When<br />omitted, KGW_DNS_LOOKUP_FAMILY applies; its default, V4_PREFERRED, is<br />equivalent to IPv4Preferred.<br /><br />For backends reached through DNS64/NAT64 without IPv4 egress, use IPv6Only<br />or IPv6Preferred so Envoy can use synthesized AAAA records. IPv4Preferred<br />selects IPv4 addresses when available, even if those addresses are<br />unreachable, so a cluster that reaches all IPv4 destinations this way should<br />change KGW_DNS_LOOKUP_FAMILY rather than override each backend.<br /><br />Amazon EKS IPv6 clusters using the Amazon VPC CNI provide IPv4 egress<br />through a host-local IPv4 address and node SNAT, so the default reaches<br />IPv4-only backends without an override.<br /><br />IPv6Preferred and IPv4Preferred fall back only when DNS returns no addresses<br />for the preferred family, not when a connection fails. All returns both<br />families, and for most backends each address becomes a separate endpoint,<br />so requests sent to an unreachable family fail rather than fall back.<br /><br />Note: This feature is experimental and subject to breaking changes in future releases. |  | Enum: [IPv4Preferred IPv4Only IPv6Only IPv6Preferred All] <br /> |
 
 
 #### DenominatorType
@@ -977,6 +1015,28 @@ _Appears in:_
 | `status` _integer_ | StatusCode defines the HTTP status code to return for this route. |  | Maximum: 599 <br />Minimum: 200 <br /> |
 | `body` _string_ | Body defines the content to be returned in the HTTP response body.<br />The maximum length of the body is restricted to prevent excessively large responses.<br />If this field and BodyFormat are both omitted, no body is included in the response.<br />Mutually exclusive with BodyFormat. |  | MaxLength: 4096 <br />MinLength: 1 <br /> |
 | `bodyFormat` _[BodyFormat](#bodyformat)_ | BodyFormat defines the content to be returned in the HTTP response body as an Envoy format string.<br />If this field and Body are both omitted, no body is included in the response.<br />Mutually exclusive with Body.<br />See https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-field-config-route-v3-directresponseaction-body-format for details. |  |  |
+
+
+#### DnsLookupFamily
+
+_Underlying type:_ _string_
+
+DnsLookupFamily selects the address families Envoy resolves for a DNS backend.
+See [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/cluster.proto#enum-config-cluster-v3-cluster-dnslookupfamily) for more details.
+
+_Validation:_
+- Enum: [IPv4Preferred IPv4Only IPv6Only IPv6Preferred All]
+
+_Appears in:_
+- [DNS](#dns)
+
+| Field | Description |
+| --- | --- |
+| `IPv4Preferred` | DnsLookupFamilyIPv4Preferred resolves both families and prefers IPv4, falling<br />back to IPv6 when no IPv4 address is returned. This is kgateway's default.<br />Equivalent to the V4_PREFERRED value of the KGW_DNS_LOOKUP_FAMILY setting.<br /> |
+| `IPv4Only` | DnsLookupFamilyIPv4Only resolves only IPv4 addresses.<br /> |
+| `IPv6Only` | DnsLookupFamilyIPv6Only resolves only IPv6 addresses.<br /> |
+| `IPv6Preferred` | DnsLookupFamilyIPv6Preferred resolves both families and prefers IPv6, falling<br />back to IPv4 when no IPv6 address is returned. Equivalent to the AUTO value<br />of the KGW_DNS_LOOKUP_FAMILY setting, which is also Envoy's own default.<br /> |
+| `All` | DnsLookupFamilyAll resolves both families and returns every address. Only<br />backends that keep all addresses in a single endpoint use happy eyeballs;<br />for others, each address is load-balanced as a separate endpoint.<br /> |
 
 
 #### DnsResolver
@@ -1099,6 +1159,7 @@ _Appears in:_
 | `componentLogLevels` _object (keys:string, values:string)_ | Envoy log levels for specific components. The keys are component names and<br />the values are one of "trace", "debug", "info", "warn", "error",<br />"critical", or "off", e.g.<br /><br />	<br />	componentLogLevels:<br />	  upstream: debug<br />	  connection: trace<br />	<br /><br />These will be converted to the `--component-log-level` Envoy argument<br />value. See<br />https://www.envoyproxy.io/docs/envoy/latest/start/quick-start/run-envoy#debugging-envoy<br />for more information.<br /><br />Note: the keys and values cannot be empty, but they are not otherwise validated. |  |  |
 | `dnsResolver` _[DnsResolver](#dnsresolver)_ | DNS resolver configuration for Envoy's CARES DNS resolver.<br />This configuration applies to all clusters and affects DNS query behavior.<br />See https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/network/dns_resolver/cares/v3/cares_dns_resolver.proto<br />for more information. |  |  |
 | `enableReadinessProbeProxyProtocol` _boolean_ | EnableReadinessProbeProxyProtocol enables the PROXY protocol listener filter<br />on the kgateway readiness listener (port 8082).<br />Set this to true if and only if the load balancer in front of the gateway<br />prepends PROXY protocol headers to incoming TCP connections targeting the<br />readiness port. For example, when using an AWS NLB with proxy protocol v2<br />enabled at the target group level<br />(`service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"`).<br />Defaults to false. |  |  |
+| `maxDownstreamConnections` _integer_ | MaxDownstreamConnections caps active downstream connections across all listeners. Unset by default (no limit).<br />This is bootstrap configuration, so changing it restarts the proxy. |  | Minimum: 1 <br /> |
 
 
 #### EnvoyContainer
@@ -1811,7 +1872,7 @@ _Appears in:_
 | `accessLog` _[AccessLog](#accesslog) array_ | AccessLoggingConfig contains various settings for Envoy's access logging service.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/v1.33.0/api-v3/config/accesslog/v3/accesslog.proto |  | MaxItems: 16 <br /> |
 | `tracing` _[Tracing](#tracing)_ | Tracing contains various settings for Envoy's OpenTelemetry tracer.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/trace/v3/opentelemetry.proto.html |  |  |
 | `localReplies` _[LocalReplyConfig](#localreplyconfig)_ | LocalReplies configures how Envoy's local replies are formatted etc. |  |  |
-| `upgradeConfig` _[UpgradeConfig](#upgradeconfig)_ | UpgradeConfig contains configuration for HTTP upgrades like WebSocket.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/v1.34.1/intro/arch_overview/http/upgrades.html |  |  |
+| `upgradeConfig` _[UpgradeConfig](#upgradeconfig)_ | UpgradeConfig contains configuration for HTTP upgrades like WebSocket.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/v1.34.1/intro/arch_overview/http/upgrades |  |  |
 | `useRemoteAddress` _boolean_ | UseRemoteAddress determines whether to use the remote address for the original client.<br />Note: If this field is omitted, it will fallback to the default value of 'true', which we set for all Envoy HCMs.<br />Thus, setting this explicitly to true is unnecessary (but will not cause any harm).<br />When true, Envoy will use the remote address of the connection as the client address.<br />When false, Envoy will use the X-Forwarded-For header to determine the client address. Furthermore, SkipXffAppend will implicitly be set to true unless explicitly configured.<br />See here for more information: https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-use-remote-address |  |  |
 | `preserveExternalRequestId` _boolean_ | PreserveExternalRequestId determines whether the connection manager will keep the x-request-id header if passed for<br />a request that is edge (Edge request is the request from external clients to front Envoy) and not reset it, which is the current Envoy behaviour. This defaults to false.<br />See here for more information https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-preserve-external-request-id |  |  |
 | `generateRequestId` _boolean_ | GenerateRequestId:  Whether the connection manager will generate the x-request-id header if it does not exist.<br />This defaults to true. Generating a random UUID4 is expensive so in high throughput scenarios where this feature is not desired it can be disabled.<br />See here for more information https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-generate-request-id |  |  |
@@ -3070,6 +3131,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `consecutive5xx` _integer_ | The number of consecutive server-side error responses (for HTTP traffic,<br />5xx responses; for TCP traffic, connection failures; etc.) before an<br />ejection occurs. Defaults to 5. If this is zero, consecutive 5xx passive<br />health checks will be disabled. In the future, other types of passive<br />health checking might be added, but none will be enabled by default. | 5 | Minimum: 0 <br /> |
 | `enforcingConsecutive5xx` _integer_ | The percentage chance that a host is ejected when an outlier status is<br />detected through consecutive 5xx responses. This setting can be used to<br />disable ejection or to ramp it up slowly. Defaults to 100. |  | Maximum: 100 <br />Minimum: 0 <br /> |
+| `consecutiveGatewayFailure` _integer_ | The number of consecutive gateway failures (502, 503 and 504 status<br />codes) before a host is ejected. When set, ejection is always enforced.<br />When unset, consecutive gateway failure ejection is disabled. |  | Minimum: 1 <br /> |
 | `splitExternalLocalOriginErrors` _boolean_ | Determines whether to distinguish locally originated failures from<br />externally generated errors. When true, consecutiveLocalOriginFailure and<br />enforcingConsecutiveLocalOriginFailure are used for locally originated<br />failures. Defaults to false. |  |  |
 | `consecutiveLocalOriginFailure` _integer_ | The number of consecutive locally originated failures before an ejection<br />occurs. Defaults to 5. This setting takes effect only when<br />splitExternalLocalOriginErrors is true. If this is zero, consecutive local<br />origin failure ejection is disabled. |  | Minimum: 0 <br /> |
 | `enforcingConsecutiveLocalOriginFailure` _integer_ | The percentage chance that a host is ejected when an outlier status is<br />detected through consecutive locally originated failures. This setting can<br />be used to disable ejection or to ramp it up slowly. Defaults to 100 and<br />takes effect only when splitExternalLocalOriginErrors is true. |  | Maximum: 100 <br />Minimum: 0 <br /> |
@@ -3363,6 +3425,8 @@ _Appears in:_
 | `failOpen` _boolean_ | FailOpen determines if requests are limited when the rate limit service is unavailable.<br />Defaults to true, meaning requests are allowed upstream and not limited if the rate limit service is unavailable. | true |  |
 | `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | Timeout provides an optional timeout value for requests to the rate limit service.<br />For rate limiting, prefer using this timeout rather than setting the generic `timeout` on the `GrpcService`.<br />See [envoy issue](https://github.com/envoyproxy/envoy/issues/20070) for more info. | 100ms | MaxLength: 32 <br />Type: string <br /> |
 | `xRateLimitHeaders` _[XRateLimitHeadersStandard](#xratelimitheadersstandard)_ | XRateLimitHeaders configures the standard version to use for X-RateLimit headers emitted.<br />See [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ratelimit/v3/rate_limit.proto#envoy-v3-api-field-extensions-filters-http-ratelimit-v3-ratelimit-enable-x-ratelimit-headers) for more info.<br />Disabled by default. | Off | Enum: [Off DraftVersion03] <br /> |
+| `percentEnabled` _integer_ | PercentEnabled specifies the percentage of requests for which the global rate limit filter<br />calls the rate limit service. Requests outside this percentage skip the filter entirely.<br />Defaults to 100 (the filter is always called) if not set.<br />See [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ratelimit/v3/rate_limit.proto#envoy-v3-api-field-extensions-filters-http-ratelimit-v3-ratelimit-filter-enabled) for more info. |  | Maximum: 100 <br />Minimum: 0 <br /> |
+| `percentEnforced` _integer_ | PercentEnforced specifies the percentage of requests, out of those for which the filter is<br />enabled, that are actually enforced (i.e. can be denied by the rate limit service response).<br />Setting this below 100 while PercentEnabled is 100 puts the filter in shadow mode: the rate<br />limit service is called and its decision is recorded in stats, but requests are not denied.<br />Defaults to 100 (enforcement matches enablement) if not set.<br />See [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ratelimit/v3/rate_limit.proto#envoy-v3-api-field-extensions-filters-http-ratelimit-v3-ratelimit-filter-enforced) for more info. |  | Maximum: 100 <br />Minimum: 0 <br /> |
 
 
 #### RemoteJWKS
@@ -3711,6 +3775,8 @@ _Appears in:_
 | `externalTrafficPolicy` _string_ | ExternalTrafficPolicy defines the external traffic policy for the service.<br />Valid values are Cluster and Local. Default value is Cluster. |  |  |
 | `loadBalancerClass` _string_ | LoadBalancerClass is the class of the load balancer implementation this Service belongs to.<br />If specified, the value of this field must be a label-style identifier, with an optional prefix.<br />This field can only be set when the Service type is 'LoadBalancer'. If not set, the default<br />load balancer implementation is used. See<br />https://kubernetes.io/docs/concepts/services-networking/service/#load-balancer-class |  |  |
 | `loadBalancerSourceRanges` _string array_ | LoadBalancerSourceRanges restricts traffic through the cloud-provider load-balancer<br />to the specified client IPs. This field will be ignored if the cloud-provider does<br />not support the feature.<br />More info: https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/ |  |  |
+| `ipFamilies` _[IPFamily](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#ipfamily-v1-core) array_ | IPFamilies is the list of IP families (IPv4 and/or IPv6) assigned to the Service,<br />in order of preference. If unset, the cluster's default is used. See<br />https://kubernetes.io/docs/concepts/services-networking/dual-stack/<br />This field is only honored for Services that allocate a cluster IP, and the<br />families requested here must be configured on the cluster.<br /><br />Kubernetes does not allow the first family to change on an existing Service:<br />the second family can be added or dropped, but a change to the first one,<br />including setting it on a Gateway whose Service took a different cluster<br />default, is rejected. The proxy Service then stops being updated, and so do<br />the resources applied after it, such as the Deployment. To change the first<br />family, delete the proxy Service or recreate the Gateway; either gives the<br />Service new cluster and LoadBalancer addresses.<br /><br />Note: This feature is experimental and subject to breaking changes in future releases. |  | MaxItems: 2 <br /> |
+| `ipFamilyPolicy` _[IPFamilyPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#ipfamilypolicy-v1-core)_ | IPFamilyPolicy represents the dual-stack preference of the Service.<br />`SingleStack` allocates one family, `PreferDualStack` allocates two when the<br />cluster has dual-stack configured and falls back to one when it does not, and<br />`RequireDualStack` fails allocation unless two families are available.<br />If unset, the cluster's default is used.<br /><br />Note: This feature is experimental and subject to breaking changes in future releases. |  | Enum: [SingleStack PreferDualStack RequireDualStack] <br /> |
 
 
 #### ServiceAccount
@@ -3728,6 +3794,81 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `extraLabels` _object (keys:string, values:string)_ | Additional labels to add to the ServiceAccount object metadata. |  |  |
 | `extraAnnotations` _object (keys:string, values:string)_ | Additional annotations to add to the ServiceAccount object metadata.<br />If the same annotation is present on `Gateway.spec.infrastructure.annotations`, the `Gateway` takes precedence. |  |  |
+
+
+#### SessionPersistence
+
+
+
+SessionPersistence defines the desired state of SessionPersistence.
+It mirrors the Gateway API v1.7 SessionPersistence type.
+
+
+This type is experimental and subject to breaking changes.
+
+
+
+_Appears in:_
+- [BackendConfigPolicySpec](#backendconfigpolicyspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `absoluteTimeout` _[Duration](#duration)_ | AbsoluteTimeout defines the absolute timeout of the persistent<br />session. Once the AbsoluteTimeout duration has elapsed, the<br />session becomes invalid.<br /><br />Only cookie sessions with lifetimeType Permanent support this field, where it<br />sets the cookie lifetime. It has no effect for header sessions and for Session<br />cookies (the default lifetimeType), as the gateway does not track the session<br />lifetime separately from the cookie. |  |  |
+| `type` _[SessionPersistenceType](#sessionpersistencetype)_ | Type defines the type of session persistence such as through<br />the use of a header or cookie. Defaults to cookie based session<br />persistence. | Cookie | Enum: [Cookie Header] <br /> |
+| `cookie` _[SessionPersistenceCookieConfig](#sessionpersistencecookieconfig)_ | Cookie provides configuration settings that are specific<br />to cookie-based session persistence. |  |  |
+| `header` _[SessionPersistenceHeaderConfig](#sessionpersistenceheaderconfig)_ | Header provides configuration settings that are specific<br />to header-based session persistence. |  |  |
+
+
+#### SessionPersistenceCookieConfig
+
+
+
+SessionPersistenceCookieConfig defines the configuration for cookie-based session persistence.
+
+
+
+_Appears in:_
+- [SessionPersistence](#sessionpersistence)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _[CookieName](#cookiename)_ | Name defines the name of the cookie used for session persistence.<br />If not specified, a unique cookie name is generated for each backend.<br />Users should avoid reusing cookie names to prevent unintended<br />consequences, such as rejection or unpredictable behavior. Avoid using the<br />same cookie name for backends in the same traffic split, as clients lose<br />their session whenever the split switches backends. |  | MaxLength: 256 <br />MinLength: 1 <br />Pattern: `^[A-Za-z0-9!#$%&'*+\-.^_\x60\|~]+$` <br /> |
+| `path` _string_ | Path defines the cookie Path attribute. Defaults to "/". | / | MaxLength: 1024 <br /> |
+| `lifetimeType` _[CookieLifetimeType](#cookielifetimetype)_ | LifetimeType specifies whether the cookie has a permanent or<br />session-based lifetime. A permanent cookie persists until its<br />specified expiry time, defined by the Expires or Max-Age cookie<br />attributes, while a session cookie is deleted when the current<br />session ends.<br /><br />When set to "Permanent", AbsoluteTimeout indicates the<br />cookie's lifetime via the Expires or Max-Age cookie attributes<br />and is required.<br /><br />When set to "Session", AbsoluteTimeout has no effect, as the<br />gateway does not track the session lifetime separately from<br />the cookie.<br /><br />Defaults to "Session". | Session | Enum: [Permanent Session] <br /> |
+
+
+#### SessionPersistenceHeaderConfig
+
+
+
+SessionPersistenceHeaderConfig defines the configuration for header-based session persistence.
+
+
+
+_Appears in:_
+- [SessionPersistence](#sessionpersistence)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _[HeaderName](#headername)_ | Name defines the name of the header used for session persistence.<br />The client must include this header in subsequent requests to<br />maintain the session. Avoid using the same header name for backends in<br />the same traffic split, as clients lose their session whenever the split<br />switches backends. |  | MaxLength: 256 <br />MinLength: 1 <br />Pattern: `^[A-Za-z0-9!#$%&'*+\-.^_\x60\|~]+$` <br /> |
+
+
+#### SessionPersistenceType
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [Cookie Header]
+
+_Appears in:_
+- [SessionPersistence](#sessionpersistence)
+
+| Field | Description |
+| --- | --- |
+| `Cookie` | CookieBasedSessionPersistence specifies cookie-based session<br />persistence.<br /> |
+| `Header` | HeaderBasedSessionPersistence specifies header-based session<br />persistence.<br /> |
 
 
 #### SetCurrentClientCertDetails
@@ -4093,7 +4234,7 @@ _Appears in:_
 | `oauth2` _[OAuth2Policy](#oauth2policy)_ | OAuth2 specifies the configuration to use for OAuth2/OIDC.<br />Note: the OAuth2 filter does not protect against Cross-Site-Request-Forgery attacks on domains with cached<br />authentication (in the form of cookies). It is recommended to pair this with the CSRF policy to prevent<br />malicious social engineering. |  |  |
 | `tracing` _[RouteTracing](#routetracing)_ | Tracing configures per-route tracing overrides.<br />These settings override the listener-level tracing configuration<br />(configured via ListenerPolicy) for matched routes.<br />The tracing provider (e.g., OpenTelemetry collector endpoint) must be<br />configured at the listener level via ListenerPolicy. Without a listener-level<br />tracing provider, route-level settings have no effect.<br />NOTE: This field is only honored for HTTPRoute and GRPCRoute targets. |  |  |
 | `faultInjection` _[FaultInjectionPolicy](#faultinjectionpolicy)_ | FaultInjection configures fault injection for chaos engineering and<br />resiliency testing. Supports delay injection, abort injection,<br />and response rate limiting. |  |  |
-| `acl` _[ACLPolicy](#aclpolicy)_ | ACL configures IP-based access control for HTTP requests.<br />Rules are evaluated using longest-prefix matching on the effictive client IP<br />from envoy base on settings. See the UseRemoteAddress, XffTrustedCIDRs,<br />XffNumTrustedHops settings under ListenerPolicy -> HttpSettings for details.<br /><br />When multiple TrafficPolicy objects target the same route, their ACL fields are<br />deep-merged by default: rules are unioned (higher-priority policy's rules first),<br />and singleton fields (defaultAction, denyResponse) are taken from the higher-priority<br />policy. If singleton fields conflict between policies, the merge falls back to<br />shallow (higher-priority policy wins entirely). Gateway-level and route-level ACL<br />policies are kept in separate merge groups and are never combined with each other;<br />a route-level ACL completely replaces the gateway-level ACL for that route. |  |  |
+| `acl` _[ACLPolicy](#aclpolicy)_ | ACL configures IP-based access control for HTTP requests.<br />Rules are evaluated using longest-prefix matching on the effective client IP<br />from envoy base on settings. See the UseRemoteAddress, XffTrustedCIDRs,<br />XffNumTrustedHops settings under ListenerPolicy -> HttpSettings for details.<br /><br />When multiple TrafficPolicy objects target the same route, their ACL fields are<br />deep-merged by default: rules are unioned (higher-priority policy's rules first),<br />and singleton fields (defaultAction, denyResponse) are taken from the higher-priority<br />policy. If singleton fields conflict between policies, the merge falls back to<br />shallow (higher-priority policy wins entirely). Gateway-level and route-level ACL<br />policies are kept in separate merge groups and are never combined with each other;<br />a route-level ACL completely replaces the gateway-level ACL for that route. |  |  |
 | `statPrefix` _string_ | StatPrefix sets a custom prefix on the Envoy route so that per-route<br />statistics are emitted for the targeted routes. When set, Envoy emits stats under<br />`vhost.<vhost>.route.<statPrefix>.*`.<br /><br />The value is composed of stat-safe literal characters (letters, digits,<br />and `_ % . -`) and/or `\{\{ ... \}\}` template tokens that are substituted at<br />translation time with metadata from the route the policy is applied to.<br />The supported template variables are:<br />  - `\{\{route_name\}\}`: the name of the route resource (e.g. HTTPRoute).<br />  - `\{\{route_namespace\}\}`: the namespace of the route resource.<br />  - `\{\{rule_name\}\}`: the name of the matched route rule, or empty if the<br />    rule is unnamed.<br /><br />For example, `\{\{route_namespace\}\}.\{\{route_name\}\}` renders to<br />`my-ns.my-route`. Whitespace is permitted only inside the braces of a<br />template token; unmatched braces, unsupported variable names, and any<br />other characters are rejected.<br /><br />Recommended value: `\{\{route_namespace\}\}.\{\{route_name\}\}.\{\{rule_name\}\}`,<br />which uniquely identifies each route rule.<br /><br />NOTE: This field is only honored for HTTPRoute and GRPCRoute targets. |  | MaxLength: 256 <br />MinLength: 1 <br />Pattern: `^([a-zA-Z0-9_%.-]\|\\{\\{\s*(route_name\|route_namespace\|rule_name)\s*\\}\\})+$` <br /> |
 
 
@@ -4135,6 +4276,39 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `request` _[Transform](#transform)_ | Request is used to modify the request path. |  |  |
 | `response` _[Transform](#transform)_ | Response is used to modify the response path. |  |  |
+
+
+#### Tunnel
+
+
+
+Tunnel configures HTTP CONNECT tunneling through a forward proxy.
+
+
+
+_Appears in:_
+- [BackendConfigPolicySpec](#backendconfigpolicyspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `proxy` _[TunnelProxy](#tunnelproxy)_ | Proxy identifies the forward proxy that establishes the tunnel. |  |  |
+| `headers` _HTTPHeader array_ | Headers are sent only on CONNECT requests. Each requires a name and<br />exactly one of value or secretRef. |  | MaxItems: 16 <br /> |
+
+
+#### TunnelProxy
+
+
+
+TunnelProxy identifies the forward proxy for a tunnel.
+
+
+
+_Appears in:_
+- [Tunnel](#tunnel)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `backendRef` _[BackendObjectReference](https://gateway-api.sigs.k8s.io/reference/api-spec/main/spec/#backendobjectreference)_ | BackendRef references the proxy Service or Backend. CONNECT uses that<br />backend's HTTP protocol. |  |  |
 
 
 #### URLRewrite
@@ -4740,7 +4914,7 @@ OpenTelemetryTracingConfig represents the top-level Envoy's OpenTelemetry tracer
 | Field | Type | Description |
 |-------|------|-------------|
 | `ancestorRef` | gwv1.ParentReference | AncestorRef corresponds with a ParentRef in the spec that this PolicyAncestorStatus struct describes the status of. **Required.** |
-| `controllerName` | string | ControllerName is a domain/path string that indicates the name of the controller that wrote this status. This corresponds with the controllerName field on GatewayClass.  Example: "example.net/gateway-controller".  The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are valid Kubernetes names (https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).  Controllers MUST populate this field when writing status. Controllers should ensure that entries to status populated with their ControllerName are cleaned up when they are no longer necessary. **Required.** |
+| `controllerName` | string | ControllerName is a domain/path string that indicates the name of the controller that wrote this status. This corresponds with the controllerName field on GatewayClass.  Example: "example.net/gateway-controller".  The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are valid [Kubernetes names](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).  Controllers MUST populate this field when writing status. Controllers should ensure that entries to status populated with their ControllerName are cleaned up when they are no longer necessary. **Required.** |
 | `conditions` | []metav1.Condition | Conditions describes the status of the Policy with respect to the given Ancestor.  |
 
 #### PolicyDisable
